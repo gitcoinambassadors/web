@@ -29,7 +29,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.contrib.humanize.templatetags.humanize import naturalday, naturaltime
 from django.contrib.postgres.fields import ArrayField, JSONField
-from django.db import models
+from django.db import models, connection
 from django.db.models import Q, Sum
 from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
 from django.dispatch import receiver
@@ -43,6 +43,7 @@ from django.utils.translation import gettext_lazy as _
 import pytz
 import requests
 from app.utils import get_upload_filename
+from dashboard.sql import PERSONA_SQL
 from dashboard.tokens import addr_to_token
 from economy.models import ConversionRate, SuperModel
 from economy.utils import ConversionRateNotFoundError, convert_amount, convert_token_to_usdt
@@ -1903,6 +1904,8 @@ class Profile(SuperModel):
     resume = models.FileField(upload_to=get_upload_filename, null=True, blank=True, help_text=_('The profile resume.'))
     actions_count = models.IntegerField(default=3)
     fee_percentage = models.IntegerField(default=10)
+    persona_is_funder = models.BooleanField(default=False)
+    persona_is_hunter = models.BooleanField(default=False)
 
     objects = ProfileQuerySet.as_manager()
 
@@ -2035,6 +2038,23 @@ class Profile(SuperModel):
         on_repo = Tip.objects.filter(github_url__startswith=self.github_url).order_by('-id')
         tipped_for = Tip.objects.filter(username__iexact=self.handle).order_by('-id')
         return on_repo | tipped_for
+
+
+    def calculate_and_save_persona(self):
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute(PERSONA_SQL, [self.id])
+                _, _, status_bounty_hunter, status_funder, _ = cursor.fetchone()
+            except Exception as e:
+                logger.error('Exception encountered calculating persona for user %s: %s' % (self.id, e))
+        if status_bounty_hunter.startswith('active'):
+            self.is_hunter = True
+        else:
+            self.is_hunter = False
+        if status_funder.startswith('active'):
+            self.is_hunter = True
+        else:
+            self.is_funder = False
 
     def has_custom_avatar(self):
         from avatar.models import CustomAvatar
@@ -2826,7 +2846,7 @@ class ProfileSerializer(serializers.BaseSerializer):
             dict: The serialized Profile.
 
         """
-        
+
         return {
             'id': instance.id,
             'handle': instance.handle,
