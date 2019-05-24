@@ -2048,12 +2048,10 @@ class Profile(SuperModel):
                 logger.error('Exception encountered calculating persona for user %s: %s' % (self.id, e))
         if status_bounty_hunter.startswith('active'):
             self.persona_is_hunter = True
-        else:
-            self.persona_is_hunter = False
+
         if status_funder.startswith('active'):
             self.persona_is_funder = True
-        else:
-            self.persona_is_funder = False
+
         self.save()
 
     def has_custom_avatar(self):
