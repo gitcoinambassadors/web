@@ -43,7 +43,7 @@ from django.utils.translation import gettext_lazy as _
 import pytz
 import requests
 from app.utils import get_upload_filename
-from dashboard.sql import PERSONA_SQL
+from dashboard.sql.persona import PERSONA_SQL
 from dashboard.tokens import addr_to_token
 from economy.models import ConversionRate, SuperModel
 from economy.utils import ConversionRateNotFoundError, convert_amount, convert_token_to_usdt
@@ -2039,7 +2039,6 @@ class Profile(SuperModel):
         tipped_for = Tip.objects.filter(username__iexact=self.handle).order_by('-id')
         return on_repo | tipped_for
 
-
     def calculate_and_save_persona(self):
         with connection.cursor() as cursor:
             try:
@@ -2048,13 +2047,14 @@ class Profile(SuperModel):
             except Exception as e:
                 logger.error('Exception encountered calculating persona for user %s: %s' % (self.id, e))
         if status_bounty_hunter.startswith('active'):
-            self.is_hunter = True
+            self.persona_is_hunter = True
         else:
-            self.is_hunter = False
+            self.persona_is_hunter = False
         if status_funder.startswith('active'):
-            self.is_hunter = True
+            self.persona_is_funder = True
         else:
-            self.is_funder = False
+            self.persona_is_funder = False
+        self.save()
 
     def has_custom_avatar(self):
         from avatar.models import CustomAvatar
