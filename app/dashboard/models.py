@@ -2040,16 +2040,18 @@ class Profile(SuperModel):
         return on_repo | tipped_for
 
     def calculate_and_save_persona(self):
+        status_bounty_hunter, status_funder = (None, None)
         with connection.cursor() as cursor:
             try:
                 cursor.execute(PERSONA_SQL, [self.id])
                 _, _, status_bounty_hunter, status_funder, _ = cursor.fetchone()
             except Exception as e:
-                logger.error('Exception encountered calculating persona for user %s: %s' % (self.id, e))
-        if status_bounty_hunter.startswith('active'):
+                logger.info('Exception encountered calculating persona for user %s: %s' % (self.id, e))
+
+        if status_bounty_hunter and status_bounty_hunter.startswith('active'):
             self.persona_is_hunter = True
 
-        if status_funder.startswith('active'):
+        if status_funder and status_funder.startswith('active'):
             self.persona_is_funder = True
 
         self.save()

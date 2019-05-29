@@ -199,9 +199,10 @@ active_funders_action as (
 ),
 user_profile as (
     select distinct
-        b.id profile_id WHERE profile_id = $1
+        b.id profile_id
     from
         dashboard_profile b
+    where b.id = %s
 ),
 final as (
     select distinct
