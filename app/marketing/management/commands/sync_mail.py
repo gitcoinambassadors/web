@@ -116,6 +116,23 @@ def sync_mailchimp_list(eses, list_id):
             pass
 
 
+def push_to_mailchimp_initial_personas():
+    print('- push_to_mailchimp_initial_personas')
+    client = MailChimp(settings.MAILCHIMP_API_KEY, settings.MAILCHIMP_USER)
+
+    eses_funder = EmailSubscriber.objects.filter(active=True, profile__persona_is_funder=True).order_by('-pk')
+    print("funder emails")
+    print("- {} emails".format(eses.count()))
+    sync_mailchimp_list(eses_funder, settings.MAILCHIMP_LIST_ID_FUNDERS)
+
+    eses_hunter = EmailSubscriber.objects.filter(active=True, profile__persona_is_hunter=True).order_by('-pk')
+    print("funder emails")
+    print("- {} emails".format(eses.count()))
+    sync_mailchimp_list(eses_hunter, settings.MAILCHIMP_LIST_ID_HUNTERS)
+
+    print('/push_to_mailchimp_initial_personas')
+
+
 def push_to_mailchimp():
     print('- push_to_mailchimp')
     client = MailChimp(settings.MAILCHIMP_API_KEY, settings.MAILCHIMP_USER)
